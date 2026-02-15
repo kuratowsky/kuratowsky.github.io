@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Joc de Pedra, Paper, Tisores, Llangardaix, Spock amb reconeixement d'imatges">
+    <title>Pedra, Paper, Tisores, Llangardaix, Spock</title>
+    <style>
+        /* Variables CSS per consistència i accessibilitat */
+        :root {
+            --color-primary: #2c3e50;
+            --color-secondary: #e74c3c;
+            --color-accent: #3498db;
+            --color-success: #27ae60;
+            --color-warning: #f39c12;
+            --color-bg: #ecf0f1;
+            --color-text: #2c3e50;
+            --color-text-light: #7f8c8d;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Reset bàsic */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Estils base per accessibilitat */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: var(--spacing-md);
+        }
+
+        /* Skip link per accessibilitat */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--color-primary);
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Container principal */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: calc(var(--border-radius) * 2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background: var(--color-primary);
+            color: white;
+            padding: var(--spacing-lg);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin-bottom: var(--spacing-sm);
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Main content */
+        main {
+            padding: var(--spacing-lg);
+        }
+
+        /* Seccions */
+        section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        section h2 {
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-md);
+            font-size: 1.5rem;
+            border-bottom: 3px solid var(--color-accent);
+            padding-bottom: var(--spacing-xs);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Botons accessibles */
+        button {
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            min-width: 120px;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: var(--color-text-light);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        button:focus-visible {
+            outline: 3px solid var(--color-warning);
+            outline-offset: 2px;
+        }
+
+        .btn-danger {
+            background: var(--color-secondary);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: var(--color-success);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #229954;
+        }
+
+        /* Webcam container */
+        .webcam-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: var(--spacing-lg) 0;
+            min-height: 200px;
+        }
+
+        #webcam-container {
+            border: 4px solid var(--color-primary);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            background: var(--color-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #webcam-container canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #webcam-container.empty {
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--color-text-light);
+            font-style: italic;
+        }
+
+        /* Prediccions */
+        #predictions-container {
+            background: var(--color-bg);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            background: white;
+            border-radius: calc(var(--border-radius) / 2);
+            transition: var(--transition);
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow);
+        }
+
+        .prediction-name {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .prediction-bar {
+            flex-grow: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin: 0 var(--spacing-sm);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prediction-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-accent), var(--color-success));
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .prediction-value {
+            font-weight: 700;
+            color: var(--color-accent);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Estat del joc */
+        .game-status {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .game-status h3 {
+            font-size: 1.3rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .choices {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+        }
+
+        .choice {
+            text-align: center;
+        }
+
+        .choice-icon {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-xs);
+            display: block;
+        }
+
+        .choice-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-message {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .result-win {
+            background: var(--color-success);
+        }
+
+        .result-lose {
+            background: var(--color-secondary);
+        }
+
+        .result-tie {
+            background: var(--color-warning);
+        }
+
+        /* Marcador */
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .score-item {
+            background: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            text-align: center;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .score-item:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* Regles del joc */
+        .rules {
+            background: var(--color-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+        }
+
+        .rules h3 {
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .rule-item {
+            background: white;
+            padding: var(--spacing-sm);
+            border-radius: calc(var(--border-radius) / 2);
+            font-size: 0.9rem;
+        }
+
+        .rule-item strong {
+            color: var(--color-accent);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Missatges d'estat per screen readers */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Animacions */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            main {
+                padding: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .choices {
+                flex-direction: column;
+            }
+
+            .choice-icon {
+                font-size: 3rem;
+            }
+        }
+
+        /* Mode fosc per preferència del sistema */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #2c3e50;
+                --color-text: #ecf0f1;
+            }
+        }
+
+        /* Reducció de moviment per accessibilitat */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip link per accessibilitat -->
+    <a href="#main-content" class="skip-link">Saltar al contingut principal</a>
+
+    <div class="container">
+        <!-- Header semàntic -->
+        <header role="banner">
+            <h1>🖖 Pedra, Paper, Tisores, Llangardaix, Spock</h1>
+            <p class="subtitle">Juga amb reconeixement d'imatges via càmera web</p>
+        </header>
+
+        <!-- Contingut principal -->
+        <main id="main-content" role="main">
+            
+            <!-- Secció de controls -->
+            <section aria-labelledby="controls-heading">
+                <h2 id="controls-heading">Controls</h2>
+                <div class="controls">
+                    <button 
+                        id="start-btn" 
+                        type="button" 
+                        onclick="init()"
+                        aria-describedby="start-description">
+                        Iniciar Càmera
+                    </button>
+                    <button 
+                        id="stop-btn" 
+                        type="button" 
+                        onclick="stopWebcam()"
+                        class="btn-danger"
+                        disabled
+                        aria-describedby="stop-description">
+                        Aturar Càmera
+                    </button>
+                    <button 
+                        id="play-btn" 
+                        type="button" 
+                        onclick="playRound()"
+                        class="btn-success"
+                        disabled
+                        aria-describedby="play-description">
+                        Jugar Ronda
+                    </button>
+                    <button 
+                        id="reset-btn" 
+                        type="button" 
+                        onclick="resetGame()"
+                        aria-label="Reiniciar marcador">
+                        Reiniciar
+                    </button>
+                </div>
+                <div class="sr-only">
+                    <p id="start-description">Inicia la càmera web per començar a jugar</p>
+                    <p id="stop-description">Atura la càmera web</p>
+                    <p id="play-description">Juga una ronda amb el gest actual detectat</p>
+                </div>
+            </section>
+
+            <!-- Secció de la webcam -->
+            <section aria-labelledby="webcam-heading">
+                <h2 id="webcam-heading">Càmera Web</h2>
+                <div class="webcam-wrapper">
+                    <div id="webcam-container" class="empty" aria-live="polite">
+                        <span>Prem "Iniciar Càmera" per començar</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Secció de prediccions -->
+            <section aria-labelledby="predictions-heading">
+                <h2 id="predictions-heading">Detecció de Gest</h2>
+                <div id="predictions-container" role="region" aria-live="polite" aria-atomic="true">
+                    <p style="text-align: center; color: var(--color-text-light);">
+                        Les prediccions apareixeran aquí un cop s'iniciï la càmera
+                    </p>
+                </div>
+            </section>
+
+            <!-- Secció de marcador -->
+            <section aria-labelledby="scoreboard-heading">
+                <h2 id="scoreboard-heading">Marcador</h2>
+                <div class="scoreboard" role="region" aria-label="Puntuacions del joc">
+                    <div class="score-item">
+                        <div class="score-label">Victòries</div>
+                        <div class="score-value" id="wins" aria-label="Nombre de victòries">0</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Derrotes</div>
+                        <div class="score-value" id="losses" aria-label="Nombre de derrotes">0</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Empats</div>
+                        <div class="score-value" id="ties" aria-label="Nombre d'empats">0</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Total Rondes</div>
+                        <div class="score-value" id="total" aria-label="Total de rondes jugades">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Secció de l'estat del joc -->
+            <section aria-labelledby="game-status-heading">
+                <h2 id="game-status-heading">Estat del Joc</h2>
+                <div id="game-status" class="game-status" role="status" aria-live="polite" aria-atomic="true">
+                    <h3>Preparat per jugar!</h3>
+                    <p>Fes un gest davant la càmera i prem "Jugar Ronda"</p>
+                </div>
+            </section>
+
+            <!-- Secció de regles -->
+            <section aria-labelledby="rules-heading">
+                <h2 id="rules-heading">Regles del Joc</h2>
+                <div class="rules">
+                    <h3>Com es juga?</h3>
+                    <p>Cadascuna de les 5 opcions guanya contra 2 altres i perd contra 2 altres:</p>
+                    <div class="rules-grid">
+                        <div class="rule-item">
+                            <strong>✊ Pedra</strong>
+                            Guanya: Tisores, Llangardaix<br>
+                            Perd: Paper, Spock
+                        </div>
+                        <div class="rule-item">
+                            <strong>✋ Paper</strong>
+                            Guanya: Pedra, Spock<br>
+                            Perd: Tisores, Llangardaix
+                        </div>
+                        <div class="rule-item">
+                            <strong>✌️ Tisores</strong>
+                            Guanya: Paper, Llangardaix<br>
+                            Perd: Pedra, Spock
+                        </div>
+                        <div class="rule-item">
+                            <strong>🦎 Llangardaix</strong>
+                            Guanya: Paper, Spock<br>
+                            Perd: Pedra, Tisores
+                        </div>
+                        <div class="rule-item">
+                            <strong>🖖 Spock</strong>
+                            Guanya: Pedra, Tisores<br>
+                            Perd: Paper, Llangardaix
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Missatges per screen readers -->
+    <div role="status" aria-live="assertive" aria-atomic="true" class="sr-only" id="screen-reader-announcements"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script>
+        // URL del model de Teachable Machine
+        const URL = "https://teachablemachine.withgoogle.com/models/T_BQfA2UR/";
+
+        // Variables globals
+        let model, webcam, maxPredictions;
+        let isWebcamRunning = false;
+        let currentPredictions = [];
+        let gameStats = {
+            wins: 0,
+            losses: 0,
+            ties: 0,
+            total: 0
+        };
+
+        // Mapeig de gestos a emojis
+        const gestureEmojis = {
+            'Rock': '✊',
+            'Paper': '✋',
+            'Scissors': '✌️',
+            'Lizard': '🦎',
+            'Spock': '🖖',
+            'Pedra': '✊',
+            'Tisores': '✌️',
+            'Llangardaix': '🦎'
+        };
+
+        // Normalització de noms (suporta anglès i català)
+        const normalizeGesture = (gesture) => {
+            const mapping = {
+                'rock': 'Pedra',
+                'paper': 'Paper',
+                'scissors': 'Tisores',
+                'lizard': 'Llangardaix',
+                'spock': 'Spock',
+                'pedra': 'Pedra',
+                'tisores': 'Tisores',
+                'llangardaix': 'Llangardaix'
+            };
+            return mapping[gesture.toLowerCase()] || gesture;
+        };
+
+        // Lògica del joc: qui guanya a qui
+        const gameRules = {
+            'Pedra': ['Tisores', 'Llangardaix'],
+            'Paper': ['Pedra', 'Spock'],
+            'Tisores': ['Paper', 'Llangardaix'],
+            'Llangardaix': ['Paper', 'Spock'],
+            'Spock': ['Pedra', 'Tisores']
+        };
+
+        // Anunciar missatges per screen readers
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById('screen-reader-announcements');
+            announcer.textContent = message;
+            setTimeout(() => {
+                announcer.textContent = '';
+            }, 1000);
+        }
+
+        // Inicialitzar la càmera i el model
+        async function init() {
+            try {
+                const startBtn = document.getElementById('start-btn');
+                const stopBtn = document.getElementById('stop-btn');
+                const playBtn = document.getElementById('play-btn');
+                
+                startBtn.disabled = true;
+                startBtn.innerHTML = '<span class="loading"></span> Carregant...';
+                
+                announceToScreenReader('Iniciant càmera i carregant model d\'intel·ligència artificial');
+
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                // Carregar el model
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                // Configurar la webcam
+                const flip = true;
+                webcam = new tmImage.Webcam(320, 320, flip);
+                await webcam.setup();
+                await webcam.play();
+                isWebcamRunning = true;
+                
+                window.requestAnimationFrame(loop);
+
+                // Actualitzar la interfície
+                const container = document.getElementById("webcam-container");
+                container.classList.remove('empty');
+                container.innerHTML = '';
+                container.appendChild(webcam.canvas);
+
+                // Crear contenidors per les prediccions
+                updatePredictionsUI();
+
+                startBtn.disabled = true;
+                startBtn.textContent = 'Càmera Activa';
+                stopBtn.disabled = false;
+                playBtn.disabled = false;
+
+                announceToScreenReader('Càmera iniciada correctament. Ja pots fer gestos');
+                
+            } catch (error) {
+                console.error('Error iniciant la càmera:', error);
+                alert('Error: No s\'ha pogut accedir a la càmera. Comprova els permisos del navegador.');
+                announceToScreenReader('Error iniciant la càmera');
+                
+                const startBtn = document.getElementById('start-btn');
+                startBtn.disabled = false;
+                startBtn.textContent = 'Iniciar Càmera';
+            }
+        }
+
+        // Aturar la webcam
+        function stopWebcam() {
+            if (webcam && isWebcamRunning) {
+                webcam.stop();
+                isWebcamRunning = false;
+                
+                const container = document.getElementById("webcam-container");
+                container.classList.add('empty');
+                container.innerHTML = '<span>Càmera aturada</span>';
+                
+                const startBtn = document.getElementById('start-btn');
+                const stopBtn = document.getElementById('stop-btn');
+                const playBtn = document.getElementById('play-btn');
+                
+                startBtn.disabled = false;
+                startBtn.textContent = 'Iniciar Càmera';
+                stopBtn.disabled = true;
+                playBtn.disabled = true;
+
+                announceToScreenReader('Càmera aturada');
+            }
+        }
+
+        // Bucle de predicció
+        async function loop() {
+            if (isWebcamRunning) {
+                webcam.update();
+                await predict();
+                window.requestAnimationFrame(loop);
+            }
+        }
+
+        // Crear interfície de prediccions
+        function updatePredictionsUI() {
+            const container = document.getElementById("predictions-container");
+            container.innerHTML = '';
+            
+            for (let i = 0; i < maxPredictions; i++) {
+                const predictionItem = document.createElement("div");
+                predictionItem.className = "prediction-item";
+                predictionItem.innerHTML = `
+                    <span class="prediction-name" id="pred-name-${i}">Carregant...</span>
+                    <div class="prediction-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-labelledby="pred-name-${i}">
+                        <div class="prediction-fill" id="pred-fill-${i}" style="width: 0%"></div>
+                    </div>
+                    <span class="prediction-value" id="pred-value-${i}">0%</span>
+                `;
+                container.appendChild(predictionItem);
+            }
+        }
+
+        // Fer predicció
+        async function predict() {
+            if (!model || !webcam) return;
+            
+            const prediction = await model.predict(webcam.canvas);
+            currentPredictions = prediction;
+            
+            for (let i = 0; i < maxPredictions; i++) {
+                const className = normalizeGesture(prediction[i].className);
+                const probability = prediction[i].probability;
+                const percentage = (probability * 100).toFixed(1);
+                
+                // Actualitzar UI
+                const nameEl = document.getElementById(`pred-name-${i}`);
+                const fillEl = document.getElementById(`pred-fill-${i}`);
+                const valueEl = document.getElementById(`pred-value-${i}`);
+                const barEl = fillEl.parentElement;
+                
+                if (nameEl) nameEl.textContent = `${gestureEmojis[className] || ''} ${className}`;
+                if (fillEl) fillEl.style.width = `${percentage}%`;
+                if (valueEl) valueEl.textContent = `${percentage}%`;
+                if (barEl) barEl.setAttribute('aria-valuenow', percentage);
+            }
+        }
+
+        // Obtenir el gest amb més probabilitat
+        function getCurrentGesture() {
+            if (!currentPredictions || currentPredictions.length === 0) return null;
+            
+            let maxProb = 0;
+            let bestGesture = null;
+            
+            for (let pred of currentPredictions) {
+                if (pred.probability > maxProb) {
+                    maxProb = pred.probability;
+                    bestGesture = normalizeGesture(pred.className);
+                }
+            }
+            
+            return maxProb > 0.5 ? bestGesture : null;
+        }
+
+        // Jugar una ronda
+        function playRound() {
+            const playerChoice = getCurrentGesture();
+            
+            if (!playerChoice) {
+                alert('No s\'ha detectat cap gest clar. Intenta fer un gest més definit.');
+                announceToScreenReader('No s\'ha detectat cap gest');
+                return;
+            }
+
+            // Elecció aleatòria de l'ordinador
+            const choices = ['Pedra', 'Paper', 'Tisores', 'Llangardaix', 'Spock'];
+            const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+
+            // Determinar el guanyador
+            const result = determineWinner(playerChoice, computerChoice);
+            
+            // Actualitzar estadístiques
+            updateStats(result);
+            
+            // Mostrar resultat
+            displayResult(playerChoice, computerChoice, result);
+            
+            announceToScreenReader(`Has triat ${playerChoice}. L'ordinador ha triat ${computerChoice}. ${result === 'win' ? 'Has guanyat' : result === 'lose' ? 'Has perdut' : 'Empat'}`);
+        }
+
+        // Determinar el guanyador
+        function determineWinner(player, computer) {
+            if (player === computer) return 'tie';
+            if (gameRules[player] && gameRules[player].includes(computer)) return 'win';
+            return 'lose';
+        }
+
+        // Actualitzar estadístiques
+        function updateStats(result) {
+            gameStats.total++;
+            if (result === 'win') gameStats.wins++;
+            else if (result === 'lose') gameStats.losses++;
+            else gameStats.ties++;
+            
+            document.getElementById('wins').textContent = gameStats.wins;
+            document.getElementById('losses').textContent = gameStats.losses;
+            document.getElementById('ties').textContent = gameStats.ties;
+            document.getElementById('total').textContent = gameStats.total;
+        }
+
+        // Mostrar resultat
+        function displayResult(player, computer, result) {
+            const statusDiv = document.getElementById('game-status');
+            
+            let resultClass = '';
+            let resultText = '';
+            let resultEmoji = '';
+            
+            if (result === 'win') {
+                resultClass = 'result-win';
+                resultText = '¡Has guanyat!';
+                resultEmoji = '🎉';
+            } else if (result === 'lose') {
+                resultClass = 'result-lose';
+                resultText = 'Has perdut';
+                resultEmoji = '😔';
+            } else {
+                resultClass = 'result-tie';
+                resultText = 'Empat!';
+                resultEmoji = '🤝';
+            }
+            
+            statusDiv.className = `game-status fade-in ${resultClass}`;
+            statusDiv.innerHTML = `
+                <h3>${resultEmoji} ${resultText}</h3>
+                <div class="choices">
+                    <div class="choice">
+                        <span class="choice-icon">${gestureEmojis[player]}</span>
+                        <span class="choice-label">Tu: ${player}</span>
+                    </div>
+                    <div class="choice">
+                        <span class="choice-icon" style="font-size: 3rem;">⚔️</span>
+                        <span class="choice-label">VS</span>
+                    </div>
+                    <div class="choice">
+                        <span class="choice-icon">${gestureEmojis[computer]}</span>
+                        <span class="choice-label">PC: ${computer}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Reiniciar el joc
+        function resetGame() {
+            if (confirm('Estàs segur que vols reiniciar el marcador?')) {
+                gameStats = { wins: 0, losses: 0, ties: 0, total: 0 };
+                document.getElementById('wins').textContent = '0';
+                document.getElementById('losses').textContent = '0';
+                document.getElementById('ties').textContent = '0';
+                document.getElementById('total').textContent = '0';
+                
+                const statusDiv = document.getElementById('game-status');
+                statusDiv.className = 'game-status';
+                statusDiv.innerHTML = '<h3>Preparat per jugar!</h3><p>Fes un gest davant la càmera i prem "Jugar Ronda"</p>';
+                
+                announceToScreenReader('Marcador reiniciat');
+            }
+        }
+
+        // Suport per teclat (accessibilitat)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isWebcamRunning) {
+                stopWebcam();
+            } else if (e.key === 'Enter' && !isWebcamRunning) {
+                init();
+            } else if (e.key === ' ' && isWebcamRunning && !document.getElementById('play-btn').disabled) {
+                e.preventDefault();
+                playRound();
+            }
+        });
+
+        // Carregar estadístiques desades (localStorage)
+        window.addEventListener('load', () => {
+            const savedStats = localStorage.getItem('gameStats');
+            if (savedStats) {
+                gameStats = JSON.parse(savedStats);
+                document.getElementById('wins').textContent = gameStats.wins;
+                document.getElementById('losses').textContent = gameStats.losses;
+                document.getElementById('ties').textContent = gameStats.ties;
+                document.getElementById('total').textContent = gameStats.total;
+            }
+        });
+
+        // Desar estadístiques abans de tancar
+        window.addEventListener('beforeunload', () => {
+            localStorage.setItem('gameStats', JSON.stringify(gameStats));
+        });
+    </script>
+</body>
+</html>
