@@ -320,6 +320,32 @@
             background: var(--color-warning);
         }
 
+        /* Compte enrere */
+        .countdown {
+            font-size: 6rem;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        .countdown-message {
+            font-size: 1.2rem;
+            margin-top: var(--spacing-md);
+            font-weight: 600;
+        }
+
         /* Marcador */
         .scoreboard {
             display: grid;
@@ -543,6 +569,15 @@
                 </div>
             </section>
 
+            <!-- Secció de l'estat del joc -->
+            <section aria-labelledby="game-status-heading">
+                <h2 id="game-status-heading">Estat del Joc</h2>
+                <div id="game-status" class="game-status" role="status" aria-live="polite" aria-atomic="true">
+                    <h3>Preparat per jugar!</h3>
+                    <p>Fes un gest davant la càmera i prem "Jugar Ronda"</p>
+                </div>
+            </section>
+
             <!-- Secció de prediccions -->
             <section aria-labelledby="predictions-heading">
                 <h2 id="predictions-heading">Detecció de Gest</h2>
@@ -573,15 +608,6 @@
                         <div class="score-label">Total Rondes</div>
                         <div class="score-value" id="total" aria-label="Total de rondes jugades">0</div>
                     </div>
-                </div>
-            </section>
-
-            <!-- Secció de l'estat del joc -->
-            <section aria-labelledby="game-status-heading">
-                <h2 id="game-status-heading">Estat del Joc</h2>
-                <div id="game-status" class="game-status" role="status" aria-live="polite" aria-atomic="true">
-                    <h3>Preparat per jugar!</h3>
-                    <p>Fes un gest davant la càmera i prem "Jugar Ronda"</p>
                 </div>
             </section>
 
@@ -837,13 +863,60 @@
             return maxProb > 0.5 ? bestGesture : null;
         }
 
-        // Jugar una ronda
-        function playRound() {
+        // Jugar una ronda amb compte enrere
+        async function playRound() {
+            const playBtn = document.getElementById('play-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const statusDiv = document.getElementById('game-status');
+            
+            // Deshabilitar botons durant el compte enrere
+            playBtn.disabled = true;
+            stopBtn.disabled = true;
+            
+            announceToScreenReader('Iniciant compte enrere. Prepara el teu gest');
+            
+            // Mostrar missatge inicial
+            statusDiv.className = 'game-status fade-in';
+            statusDiv.innerHTML = `
+                <h3>🎬 Prepara't!</h3>
+                <p class="countdown-message">Fes el teu gest i manté-lo durant el compte enrere</p>
+            `;
+            
+            // Esperar 1 segon abans de començar
+            await sleep(1000);
+            
+            // Compte enrere de 5 a 1
+            for (let i = 5; i > 0; i--) {
+                statusDiv.className = 'game-status fade-in';
+                statusDiv.innerHTML = `
+                    <div class="countdown">${i}</div>
+                    <p class="countdown-message">Manté el teu gest...</p>
+                `;
+                announceToScreenReader(`${i}`);
+                await sleep(1000);
+            }
+            
+            // Capturar el gest en aquest moment
+            statusDiv.className = 'game-status fade-in';
+            statusDiv.innerHTML = `
+                <div class="countdown">📸</div>
+                <p class="countdown-message">Capturant gest!</p>
+            `;
+            announceToScreenReader('Capturant el teu gest');
+            await sleep(500);
+            
+            // Obtenir el gest actual
             const playerChoice = getCurrentGesture();
             
             if (!playerChoice) {
-                alert('No s\'ha detectat cap gest clar. Intenta fer un gest més definit.');
-                announceToScreenReader('No s\'ha detectat cap gest');
+                statusDiv.className = 'game-status result-lose';
+                statusDiv.innerHTML = `
+                    <h3>⚠️ No s'ha detectat cap gest</h3>
+                    <p>Intenta fer un gest més clar i definit.</p>
+                `;
+                announceToScreenReader('No s\'ha detectat cap gest clar');
+                playBtn.disabled = false;
+                stopBtn.disabled = false;
                 return;
             }
 
@@ -860,7 +933,16 @@
             // Mostrar resultat
             displayResult(playerChoice, computerChoice, result);
             
+            // Reactivar botons
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            
             announceToScreenReader(`Has triat ${playerChoice}. L'ordinador ha triat ${computerChoice}. ${result === 'win' ? 'Has guanyat' : result === 'lose' ? 'Has perdut' : 'Empat'}`);
+        }
+
+        // Funció auxiliar per esperar
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
 
         // Determinar el guanyador
@@ -944,11 +1026,13 @@
 
         // Suport per teclat (accessibilitat)
         document.addEventListener('keydown', (e) => {
+            const playBtn = document.getElementById('play-btn');
+            
             if (e.key === 'Escape' && isWebcamRunning) {
                 stopWebcam();
             } else if (e.key === 'Enter' && !isWebcamRunning) {
                 init();
-            } else if (e.key === ' ' && isWebcamRunning && !document.getElementById('play-btn').disabled) {
+            } else if (e.key === ' ' && isWebcamRunning && !playBtn.disabled) {
                 e.preventDefault();
                 playRound();
             }
